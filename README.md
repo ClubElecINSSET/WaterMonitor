@@ -20,7 +20,7 @@ The primary goal of this project is to develop a floating base equipped with var
   - Analog Electrical Conductivity Sensor
 
 
-## 🔍 Sensor References
+## 🔍 Sensors References
 
 ### 1. Analog TDS Sensor/Meter
 
