@@ -90,6 +90,7 @@ Contributions are welcome! Please submit a pull request or open an issue to disc
 
 A big thank you to the following contributors for their invaluable collaboration on this project. We worked together to bring this project to life:
 
+- [Yoni](https://github.com/LordYoni)
 - [Eliot](https://github.com/GrosChien)
 - [Thomas](https://github.com/Thomas127)
 - [Zakariya](https://github.com/zakariyaelk)
