@@ -8,13 +8,13 @@
 class tdsSensor : public Sensor
 {
 private:
-    const TemperatureSensor& m_tempeature;
+    const TemperatureSensor &m_temperature;
 
 public:
     tdsSensor(const uint8_t &channel, const TemperatureSensor &temperature);
     ~tdsSensor() override;
 
-    void poll();
+    void poll() override;
     void printState() const override;
 };
 

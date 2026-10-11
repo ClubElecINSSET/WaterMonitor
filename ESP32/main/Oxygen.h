@@ -14,7 +14,7 @@ public:
     OxygenSensor(const uint8_t &channel, const TemperatureSensor &temperature);
     ~OxygenSensor() override;
 
-    void poll();
+    void poll() override;
     void printState() const override;
 
 private:
@@ -34,7 +34,7 @@ private:
         14460, 14220, 13820, 13440, 13090, 12740, 12420, 12110, 11810, 11530,
         11260, 11010, 10770, 10530, 10300, 10080, 9860, 9660, 9460, 9270,
         9080, 8900, 8730, 8570, 8410, 8250, 8110, 7960, 7820, 7690,
-        7560, 7430, 7300, 7180, 7070, 6950, 6840, 6730, 6630, 6530, 641
+        7560, 7430, 7300, 7180, 7070, 6950, 6840, 6730, 6630, 6530, 6410
     };
 };
 

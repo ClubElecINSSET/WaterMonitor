@@ -18,10 +18,17 @@ void OxygenSensor::poll()
     //Doesn't poll voltage from temp
 
 
+    //DO_Table covers 0–40 °C: without a valid temperature in that range it would be read out of bounds
+    if(m_temperature.isValueWrong() || m_temperature.getValue() < 0.0f)
+    {
+        m_value_error = true;
+        return;
+    }
+
     uint16_t voltage_mv = m_voltage * 1000;
     uint8_t temperature_c = (uint8_t)(m_temperature.getValue());
 
-    #if TWO_POINT_CALIBRATION == 1
+    #if TWO_POINT_CALIBRATION == 0
 
         uint16_t V_saturation = (uint32_t)CAL1_V + (uint32_t)35 * temperature_c - (uint32_t)CAL1_T * 35;
         m_value = (voltage_mv * DO_Table[temperature_c] / V_saturation) / 1000.0f;

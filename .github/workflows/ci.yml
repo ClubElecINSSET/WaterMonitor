@@ -1,0 +1,118 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  raspberry:
+    name: Raspberry (site, API, lecteur)
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: Raspberry
+    services:
+      mariadb:
+        image: mariadb:11
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: watermonitor
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd "healthcheck.sh --connect --innodb_initialized"
+          --health-interval 5s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: Raspberry/package-lock.json
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11" # celui de Raspberry Pi OS Bookworm
+
+      - run: npm ci
+      - name: Tests du site et du lecteur
+        run: npm test
+
+      # Le Pi sert Website/dist tel quel : il doit correspondre aux sources
+      - name: Le build commité est à jour
+        run: |
+          npm run build
+          if [ -n "$(git status --porcelain -- Website/dist)" ]; then
+            git status --short -- Website/dist
+            echo "::error::Website/dist n'est pas à jour : lancer npm run build et commiter le résultat"
+            exit 1
+          fi
+
+      - name: Base de démo
+        run: |
+          node --input-type=module -e '
+            import mysql from "mysql2/promise";
+            import { readFileSync } from "node:fs";
+            const db = await mysql.createConnection({ host: "127.0.0.1", user: "root", password: "root", database: "watermonitor", multipleStatements: true });
+            for (const file of ["schema.sql", "test_values.sql"]) await db.query(readFileSync(file, "utf8"));
+            await db.end();'
+      - name: Tests de l'API
+        run: npm run test:api
+
+      # Raspberry Pi OS Bookworm fournit Node 18 : le serveur doit y démarrer
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Le serveur démarre sous Node 18
+        env:
+          NODE_ENV: production
+          PORT: 8097
+          DB_HOST: 127.0.0.1
+          DB_USER: root
+          DB_PASS: root
+          DB_NAME: watermonitor
+        run: |
+          rm -rf node_modules && npm ci --omit=dev
+          node server.js &
+          for _ in $(seq 20); do curl -fsS "localhost:$PORT/api/measures?limit=1" && exit 0; sleep 0.5; done
+          exit 1
+
+      - name: Shellcheck
+        run: |
+          command -v shellcheck || { sudo apt-get update -qq && sudo apt-get install -y -qq shellcheck; } # préinstallé sur GitHub, pas sous act
+          shellcheck install.sh kiosk.sh
+
+  esp32:
+    name: ESP32 (firmware)
+    runs-on: ubuntu-24.04
+    env:
+      ESP32_CORE: esp32:esp32@3.3.12
+      ESP32_INDEX: https://espressif.github.io/arduino-esp32/package_esp32_index.json
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Tests du firmware (g++ + sanitizers, décodés par reader.py)
+        working-directory: ESP32/test
+        run: python3 -m unittest -v test_firmware
+
+      - uses: arduino/setup-arduino-cli@v2
+      - uses: actions/cache@v4
+        with:
+          path: ~/.arduino15
+          key: arduino-${{ env.ESP32_CORE }}
+      - name: Cœur ESP32 et bibliothèque MCP3008
+        env:
+          ARDUINO_LIBRARY_ENABLE_UNSAFE_INSTALL: "true" # nécessaire pour installer depuis git
+        run: |
+          arduino-cli core update-index --additional-urls "$ESP32_INDEX"
+          arduino-cli core install "$ESP32_CORE" --additional-urls "$ESP32_INDEX"
+          arduino-cli lib install --git-url https://github.com/nodesign/MCP3008.git#d8151f946a5bd8071eed47b180f748517f8102a4
+      - name: Compilation pour ESP32
+        run: |
+          set -o pipefail
+          arduino-cli compile -b esp32:esp32:esp32 --warnings all ESP32/main 2>&1 | tee compile.log
+          if grep -E "ESP32/main/.*(warning|avertissement)" compile.log; then
+            echo "::error::Le firmware compile avec des avertissements"
+            exit 1
+          fi

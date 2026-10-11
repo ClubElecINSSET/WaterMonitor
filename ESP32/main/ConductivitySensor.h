@@ -14,7 +14,7 @@ public:
     ConductivitySensor(const uint8_t &channel, const TemperatureSensor &temperature);
     ~ConductivitySensor() override;
 
-    void poll();
+    void poll() override;
     void printState() const override;
 
 private:

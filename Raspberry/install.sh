@@ -6,7 +6,7 @@
 #   sudo KIOSK=0 ./install.sh         do not open the dashboard full screen at boot
 set -euo pipefail
 
-REPO_URL="${REPO_URL:-https://github.com/LordYoni/WaterMonitor.git}"
+REPO_URL="${REPO_URL:-https://github.com/ClubElecINSSET/WaterMonitor.git}"
 BRANCH="${BRANCH:-main}"
 KIOSK="${KIOSK:-1}"
 INSTALL_DIR="/opt/watermonitor"

@@ -12,7 +12,7 @@
 
 //Defines whether we want to output data to Xbee or
 //in a readable format in the serial monitor
-#define sendToSerialMonitor true
+#define sendToSerialMonitor false
 
 enum MCP_PIN : uint8_t
 {

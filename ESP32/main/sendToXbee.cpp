@@ -15,20 +15,6 @@ float abs_float(const float &number)
     return number;
 }
 
-uint8_t getMSB(const float &number) { return (uint8_t)( abs_float(number) / 256 ); }
-
-//Through uint16_t: casting a float >= 256 straight to uint8_t is undefined behaviour
-uint8_t getLSB(const float &number) { return (uint8_t)(uint16_t)abs_float(number); }
-
-uint8_t getDecimal(float number)
-{
-    number = abs_float(number) + 0.005f;    //Absolute value + rounding
-    number -= (float)(uint16_t)number;      //Discard integer part
-    number *= 100.0f;                       //Move the first two decimal digits
-
-    return (uint8_t)number;                 //Cast to a byte
-}
-
 void writeToArray
 (
             uint8_t     *array,
@@ -44,11 +30,15 @@ void writeToArray
         return;
     }
 
-    if(size == 3)
-        array[index++] = getMSB (sensor.getValue());
+    //Round once, so that 6.996 is sent as 7.00 and not as 6 + .00
+    const float     rounded = abs_float(sensor.getValue()) + 0.005f;
+    const uint16_t  integer = (uint16_t)rounded;
 
-    array[index++] = getLSB     (sensor.getValue());
-    array[index++] = getDecimal (sensor.getValue());
+    if(size == 3)
+        array[index++] = integer / 256;
+
+    array[index++] = integer % 256;
+    array[index++] = (uint8_t)((rounded - integer) * 100.0f);
 }
 
 

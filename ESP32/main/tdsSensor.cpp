@@ -3,7 +3,7 @@
 
 
 tdsSensor::tdsSensor(const uint8_t &channel, const TemperatureSensor &temperature)
-    : Sensor(channel), m_tempeature(temperature) {}
+    : Sensor(channel), m_temperature(temperature) {}
 
 tdsSensor::~tdsSensor() {}
 
@@ -13,7 +13,7 @@ void tdsSensor::poll()
     pollVoltage();
     //Doesn't poll voltage from temp
 
-    const float compensationCoefficient = 1.0f + 0.02f * (m_tempeature.getValue() - 25.0f);
+    const float compensationCoefficient = 1.0f + 0.02f * (m_temperature.isValueWrong() ? 0.0f : m_temperature.getValue() - 25.0f);
     const float compensatedVoltage = m_voltage / compensationCoefficient;
 
     m_value = (133.42f * pow(compensatedVoltage, 3.0f) -
