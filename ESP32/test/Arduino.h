@@ -9,10 +9,10 @@ typedef bool boolean;
 
 struct FakeSerial
 {
-    std::vector<uint8_t> out;
-    void write(uint8_t b) { out.push_back(b); }
+    std::vector<uint8_t>    out;
+    void                    write(uint8_t b) { out.push_back(b); }
     template <class T> void print(T) {}
     template <class T> void println(T) {}
-    void println() {}
+    void                    println() {}
 };
 extern FakeSerial Serial;

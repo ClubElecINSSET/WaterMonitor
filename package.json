@@ -1,0 +1,20 @@
+{
+  "name": "watermonitor-tooling",
+  "private": true,
+  "description": "Lint and formatting for the whole repo (never installed on the Pi)",
+  "type": "module",
+  "scripts": {
+    "lint": "eslint . && prettier --check . && npm run lint:py && npm run lint:cpp",
+    "lint:py": "uvx ruff@0.17.0 check && uvx ruff@0.17.0 format --check",
+    "lint:cpp": "uvx clang-format@23.1.3 --dry-run --Werror ESP32/main/*.cpp ESP32/main/*.h ESP32/main/*.ino ESP32/test/*.cpp ESP32/test/*.h",
+    "format": "prettier --write . && eslint --fix . && uvx ruff@0.17.0 format && uvx ruff@0.17.0 check --fix && uvx clang-format@23.1.3 -i ESP32/main/*.cpp ESP32/main/*.h ESP32/main/*.ino ESP32/test/*.cpp ESP32/test/*.h"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "eslint": "10.12.0",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.7",
+    "globals": "17.13.0",
+    "prettier": "3.9.10"
+  }
+}

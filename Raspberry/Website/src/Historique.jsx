@@ -40,7 +40,11 @@ export default function Historique({ route, link, rows }) {
                 {m.label} <span className="font-semibold text-ink-soft">{m.unit}</span>
               </span>
               <div className="grid grid-cols-3 gap-1.5">
-                {[["Min", s.min], ["Moy.", s.avg], ["Max", s.max]].map(([label, v]) => (
+                {[
+                  ["Min", s.min],
+                  ["Moy.", s.avg],
+                  ["Max", s.max],
+                ].map(([label, v]) => (
                   <div key={label} className="flex flex-col">
                     <span className="text-[11.5px] font-semibold text-ink-soft">{label}</span>
                     <span className="text-lg font-extrabold tabular-nums">{fmt(v, m.digits)}</span>
@@ -60,11 +64,22 @@ export default function Historique({ route, link, rows }) {
           </div>
           <div className="flex items-center gap-[18px]">
             <div className="flex items-center gap-3.5 text-[12.5px] font-semibold">
-              <span className="inline-flex items-center gap-1.5"><Dot status="good" />Bon</span>
-              <span className="inline-flex items-center gap-1.5"><Dot status="warning" />À surveiller</span>
-              <span className="inline-flex items-center gap-1.5"><Dot status="critical" />Critique</span>
+              <span className="inline-flex items-center gap-1.5">
+                <Dot status="good" />
+                Bon
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Dot status="warning" />À surveiller
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <Dot status="critical" />
+                Critique
+              </span>
             </div>
-            <Button onClick={() => setNewestFirst(!newestFirst)} className="min-h-11 rounded-full px-[18px] text-sm font-bold">
+            <Button
+              onClick={() => setNewestFirst(!newestFirst)}
+              className="min-h-11 rounded-full px-[18px] text-sm font-bold"
+            >
               <ArrowDownUp className="size-4" strokeWidth={2.2} />
               {newestFirst ? "Plus récentes d’abord" : "Plus anciennes d’abord"}
             </Button>
@@ -78,11 +93,16 @@ export default function Historique({ route, link, rows }) {
                 <TableHead className="h-auto px-2 py-1.5 text-[12.5px] font-bold text-ink-soft">N°</TableHead>
                 <TableHead className="h-auto px-2 py-1.5 text-[12.5px] font-bold text-ink-soft">Heure</TableHead>
                 {METRICS.map((m) => (
-                  <TableHead key={m.key} className="h-auto px-2 py-1.5 text-right text-[12.5px] font-bold text-ink-soft">
+                  <TableHead
+                    key={m.key}
+                    className="h-auto px-2 py-1.5 text-right text-[12.5px] font-bold text-ink-soft"
+                  >
                     {m.short} {m.unit}
                   </TableHead>
                 ))}
-                <TableHead className="h-auto px-2 py-1.5 text-right text-[12.5px] font-bold text-ink-soft">Qualité</TableHead>
+                <TableHead className="h-auto px-2 py-1.5 text-right text-[12.5px] font-bold text-ink-soft">
+                  Qualité
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -101,7 +121,11 @@ export default function Historique({ route, link, rows }) {
                       </TableCell>
                     ))}
                     <TableCell className="px-2 py-[7px] text-right">
-                      <Badge className={cn("rounded-full border-0 px-2.5 py-[3px] text-[12.5px] font-bold", QUALITY_CHIP[q])}>{QUALITY_WORD[q]}</Badge>
+                      <Badge
+                        className={cn("rounded-full border-0 px-2.5 py-[3px] text-[12.5px] font-bold", QUALITY_CHIP[q])}
+                      >
+                        {QUALITY_WORD[q]}
+                      </Badge>
                     </TableCell>
                   </TableRow>
                 );

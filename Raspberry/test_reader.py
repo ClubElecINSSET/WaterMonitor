@@ -12,10 +12,16 @@ class DecodeFrameTest(unittest.TestCase):
     def test_values(self):
         # 21.50 °C, pH 7.05, TDS 300.25, conductivity 410.10, oxygen 8.50
         values = decode_frame(frame(21, 50, 7, 5, 1, 44, 25, 1, 154, 10, 0, 8, 50))
-        self.assertEqual(values, {
-            "Temperature": 21.5, "pH": 7.05, "TDS": 300.25,
-            "Conductivity": 410.1, "Oxygen": 8.5,
-        })
+        self.assertEqual(
+            values,
+            {
+                "Temperature": 21.5,
+                "pH": 7.05,
+                "TDS": 300.25,
+                "Conductivity": 410.1,
+                "Oxygen": 8.5,
+            },
+        )
 
     def test_negative_temperature(self):
         values = decode_frame(frame(0xFB, 25, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0))  # -5.25 °C

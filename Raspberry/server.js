@@ -19,7 +19,7 @@ const app = express();
 app.set("query parser", "simple");
 app.disable("x-powered-by");
 
-// The last `limit` raw measures, oldest first, plus the total count.
+// The last `limit` raw measures, oldest first, plus the total count and the server time.
 // ts is a Unix timestamp in seconds (no timezone ambiguity).
 app.get("/api/measures", async (req, res, next) => {
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 10, 1), 200);
@@ -27,11 +27,14 @@ app.get("/api/measures", async (req, res, next) => {
     const [rows] = await pool.query(
       `SELECT id, UNIX_TIMESTAMP(Time) AS ts, TDS, pH, Oxygen, Conductivity, Temperature
        FROM Data ORDER BY Time DESC, id DESC LIMIT ?`,
-      [limit]
+      [limit],
     );
     // shortcut: MAX(id) is instant while COUNT(*) scans ~86k new rows a day; wrong only if rows get deleted
-    const [[{ count }]] = await pool.query("SELECT COALESCE(MAX(id), 0) AS count FROM Data");
-    res.json({ count, rows: rows.reverse() });
+    // now: the database clock, which stamped the rows, so the browser's clock does not matter
+    const [[{ count, now }]] = await pool.query(
+      "SELECT COALESCE(MAX(id), 0) AS count, UNIX_TIMESTAMP() AS now FROM Data",
+    );
+    res.json({ count, now, rows: rows.reverse() });
   } catch (err) {
     next(err);
   }
@@ -54,7 +57,7 @@ async function history(asked) {
      FROM Data
      WHERE Time >= NOW() - INTERVAL ? HOUR
      GROUP BY 1 ORDER BY 1`,
-    [bucket, bucket, hours]
+    [bucket, bucket, hours],
   );
   return { hours, bucket, points };
 }
@@ -72,7 +75,7 @@ app.get("/api/history", async (req, res, next) => {
     historyCache.set(asked, entry);
     entry.result.then(
       ({ bucket }) => (entry.expires = Date.now() + Math.min(Math.max(bucket, 30), 3600) * 1000),
-      () => historyCache.delete(asked)
+      () => historyCache.delete(asked),
     );
   }
   try {
@@ -92,7 +95,8 @@ if (process.env.NODE_ENV === "development") {
   app.use(express.static(fileURLToPath(new URL("Website/dist", import.meta.url))));
 }
 
-app.use((err, req, res, next) => {
+// Express recognises an error handler by its 4 parameters
+app.use((err, req, res, _next) => {
   console.error(err);
   res.status(500).json({ error: "Database unavailable" });
 });

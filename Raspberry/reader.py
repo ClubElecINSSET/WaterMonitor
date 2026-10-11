@@ -5,6 +5,7 @@ Frame layout (see ESP32/main/sendToXbee.cpp), 16 bytes:
        | conductivity MSB, LSB, dec | oxygen MSB, LSB, dec | checksum | 0x0A
 A first byte of 0xFF for a value means the sensor reported an error.
 """
+
 import os
 import time
 
@@ -32,7 +33,7 @@ def decode_frame(frame):
 
     values = {}
     for column, offset, size in FIELDS:
-        raw = frame[offset:offset + size]
+        raw = frame[offset : offset + size]
         if raw[0] == ERROR_BYTE:
             values[column] = None
             continue
@@ -74,9 +75,7 @@ def main():
     import serial
 
     columns = [column for column, _, _ in FIELDS]
-    query = "INSERT INTO Data ({}) VALUES ({})".format(
-        ", ".join(columns), ", ".join(["%s"] * len(columns))
-    )
+    query = "INSERT INTO Data ({}) VALUES ({})".format(", ".join(columns), ", ".join(["%s"] * len(columns)))
 
     db = None
     port = serial.Serial(os.getenv("SERIAL_PORT", "/dev/ttyUSB0"), 9600, timeout=3)

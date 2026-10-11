@@ -11,13 +11,13 @@ Bouée flottante qui mesure la qualité de l'eau du **Parc d'Isle** (Saint-Quent
 └───────────────────────┘ 1 trame/s └──────────────────────────────────────────────┘
 ```
 
-| Mesure | Unité | Plage idéale |
-|---|---|---|
-| Température | °C | < 15 °C |
-| pH | | 5,5 – 7,0 |
-| Oxygène dissous | mg/L | 4 – 7 mg/L |
-| TDS (solides dissous) | ppm | < 100 ppm |
-| Conductivité | µS/cm | < 150 µS/cm |
+| Mesure                | Unité | Plage idéale |
+| --------------------- | ----- | ------------ |
+| Température           | °C    | < 15 °C      |
+| pH                    |       | 5,5 – 7,0    |
+| Oxygène dissous       | mg/L  | 4 – 7 mg/L   |
+| TDS (solides dissous) | ppm   | < 100 ppm    |
+| Conductivité          | µS/cm | < 150 µS/cm  |
 
 Les seuils sont dans [`Raspberry/Website/src/metrics.js`](Raspberry/Website/src/metrics.js).
 
@@ -51,22 +51,22 @@ Raspberry/
 
 Câblage du MCP3008 sur l'ESP32 (défini dans `main.ino`) :
 
-| MCP3008 | GPIO ESP32 | | Canal MCP3008 | Sonde |
-|---|---|---|---|---|
-| CS | 5 | | 0 | pH |
-| CLK | 18 | | 1 | Conductivité |
-| MOSI (DIN) | 23 | | 2 | Température |
-| MISO (DOUT) | 19 | | 3 | Oxygène |
-| | | | 4 | TDS |
+| MCP3008     | GPIO ESP32 |     | Canal MCP3008 | Sonde        |
+| ----------- | ---------- | --- | ------------- | ------------ |
+| CS          | 5          |     | 0             | pH           |
+| CLK         | 18         |     | 1             | Conductivité |
+| MOSI (DIN)  | 23         |     | 2             | Température  |
+| MISO (DOUT) | 19         |     | 3             | Oxygène      |
+|             |            |     | 4             | TDS          |
 
 L'XBee de la bouée est relié au port série de l'ESP32 (`Serial`, 9600 bauds). Celui du Pi est branché en USB (`/dev/ttyUSB0`).
 
 ## ESP32 : flasher le firmware
 
-1. Arduino IDE → *Fichier* → *Préférences* → *URL de gestionnaire de cartes supplémentaires* : `https://espressif.github.io/arduino-esp32/package_esp32_index.json`
-2. *Outils* → *Carte* → *Gestionnaire de carte* : installer **esp32** d'Espressif (testé avec la 3.3.12).
-3. Bibliothèque MCP3008 : télécharger [nodesign/MCP3008](https://github.com/nodesign/MCP3008) en ZIP, puis *Croquis* → *Inclure une bibliothèque* → *Ajouter la bibliothèque .ZIP*.
-4. Ouvrir `ESP32/main/main.ino`, choisir la carte (*ESP32 Dev Module*) et téléverser.
+1. Arduino IDE → _Fichier_ → _Préférences_ → _URL de gestionnaire de cartes supplémentaires_ : `https://espressif.github.io/arduino-esp32/package_esp32_index.json`
+2. _Outils_ → _Carte_ → _Gestionnaire de carte_ : installer **esp32** d'Espressif (testé avec la 3.3.12).
+3. Bibliothèque MCP3008 : télécharger [nodesign/MCP3008](https://github.com/nodesign/MCP3008) en ZIP, puis _Croquis_ → _Inclure une bibliothèque_ → _Ajouter la bibliothèque .ZIP_.
+4. Ouvrir `ESP32/main/main.ino`, choisir la carte (_ESP32 Dev Module_) et téléverser.
 
 Pour lire les valeurs en clair dans le moniteur série (sans XBee), passer `sendToSerialMonitor` à `true` dans `main.ino`. **Remettre `false` avant de poser la bouée**, sinon le Pi ne reçoit aucune mesure.
 
@@ -74,11 +74,11 @@ Pour lire les valeurs en clair dans le moniteur série (sans XBee), passer `send
 
 Les constantes ne viennent pas d'un étalonnage fait sur ces sondes : à refaire avec des solutions étalons avant de se fier aux mesures.
 
-| Sonde | Où | À faire |
-|---|---|---|
-| pH | `PhSensor.cpp` / `.h` (`3,5 × V + OFFSET`, `OFFSET = -5`) | Avec cette formule et l'ADC en 3,3 V, le pH ne peut pas dépasser **6,54**. Étalonner avec des solutions pH 4 et 7 et vérifier la tension de sortie de la sonde. |
-| Oxygène | `Oxygen.h` (`CAL1_V`, `CAL2_V`) | Valeurs de l'exemple DFRobot. Mesurer la tension en air saturé à deux températures ([procédure DFRobot](https://wiki.dfrobot.com/Gravity__Analog_Dissolved_Oxygen_Sensor_SKU_SEN0237)). |
-| Conductivité | `ConductivitySensor.h` (`k`) | Vérifier avec une solution étalon (1413 µS/cm). |
+| Sonde        | Où                                                        | À faire                                                                                                                                                                                 |
+| ------------ | --------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| pH           | `PhSensor.cpp` / `.h` (`3,5 × V + OFFSET`, `OFFSET = -5`) | Avec cette formule et l'ADC en 3,3 V, le pH ne peut pas dépasser **6,54**. Étalonner avec des solutions pH 4 et 7 et vérifier la tension de sortie de la sonde.                         |
+| Oxygène      | `Oxygen.h` (`CAL1_V`, `CAL2_V`)                           | Valeurs de l'exemple DFRobot. Mesurer la tension en air saturé à deux températures ([procédure DFRobot](https://wiki.dfrobot.com/Gravity__Analog_Dissolved_Oxygen_Sensor_SKU_SEN0237)). |
+| Conductivité | `ConductivitySensor.h` (`k`)                              | Vérifier avec une solution étalon (1413 µS/cm).                                                                                                                                         |
 
 ### Limites connues
 
@@ -90,9 +90,9 @@ Les constantes ne viennent pas d'un étalonnage fait sur ces sondes : à refaire
 
 16 octets, envoyés une fois par seconde par `sendToXbee.cpp` et décodés par `reader.py` :
 
-| Octet | 0 | 1–2 | 3–4 | 5–7 | 8–10 | 11–13 | 14 | 15 |
-|---|---|---|---|---|---|---|---|---|
-| Contenu | `0xA0` | température | pH | TDS | conductivité | oxygène | somme de contrôle | `0x0A` |
+| Octet   | 0      | 1–2         | 3–4 | 5–7 | 8–10         | 11–13   | 14                | 15     |
+| ------- | ------ | ----------- | --- | --- | ------------ | ------- | ----------------- | ------ |
+| Contenu | `0xA0` | température | pH  | TDS | conductivité | oxygène | somme de contrôle | `0x0A` |
 
 - Chaque valeur est envoyée comme une partie entière (1 octet, ou 2 octets poids fort d'abord), suivie des centièmes (1 octet). Exemple : 412,07 → `01 9C 07`.
 - Un premier octet à `0xFF` signale un capteur en erreur, enregistré comme `NULL`.
@@ -139,22 +139,22 @@ Le port série de l'XBee se règle dans `/etc/watermonitor/reader.env` (`SERIAL_
 
 ### API
 
-| Route | Réponse |
-|---|---|
-| `GET /api/measures?limit=1..200` | `{count, rows}` : les dernières mesures brutes, de la plus ancienne à la plus récente |
-| `GET /api/history?hours=1..8760` | `{hours, bucket, points}` : moyennes par tranches (144 points au plus) ; `hours=0` remonte à la première mesure |
+| Route                            | Réponse                                                                                                           |
+| -------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `GET /api/measures?limit=1..200` | `{count, now, rows}` : les dernières mesures brutes, de la plus ancienne à la plus récente, et l'heure du serveur |
+| `GET /api/history?hours=1..8760` | `{hours, bucket, points}` : moyennes par tranches (144 points au plus) ; `hours=0` remonte à la première mesure   |
 
 `ts` est un horodatage Unix en secondes. Un capteur en erreur vaut `null`.
 
 ### Dépannage
 
-| Symptôme | Cause probable |
-|---|---|
-| « Bouée hors ligne » | Aucune trame depuis 3 h : voir `journalctl -u watermonitor-reader`. Si aucune trame n'arrive, vérifier `sendToSerialMonitor` (doit être `false`), l'alimentation et l'appairage des XBee. |
-| « Corrupt frame, skipped » de temps en temps | Parasites radio : sans gravité, le lecteur se resynchronise. |
-| `watermonitor-web` ne démarre pas | Le port 80 est déjà pris, souvent par l'Apache de l'ancienne version : `sudo apt purge apache2`. |
-| Heure des mesures fausse | Le Pi n'a pas d'horloge interne : sans Internet au démarrage, l'heure reste fausse jusqu'à la synchronisation. |
-| « 1 an » ou « Toujours » lents | Ces périodes recalculent des millions de lignes. Le résultat est mis en cache, de 30 s à 1 h selon la période. |
+| Symptôme                                     | Cause probable                                                                                                                                                                                                                                                   |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| « Bouée hors ligne »                         | Aucune trame depuis 30 min (au-delà de 15 min, la qualité générale passe au mieux à « Moyen ») : voir `journalctl -u watermonitor-reader`. Si aucune trame n'arrive, vérifier `sendToSerialMonitor` (doit être `false`), l'alimentation et l'appairage des XBee. |
+| « Corrupt frame, skipped » de temps en temps | Parasites radio : sans gravité, le lecteur se resynchronise.                                                                                                                                                                                                     |
+| `watermonitor-web` ne démarre pas            | Le port 80 est déjà pris, souvent par l'Apache de l'ancienne version : `sudo apt purge apache2`.                                                                                                                                                                 |
+| Heure des mesures fausse                     | Le Pi n'a pas d'horloge interne : sans Internet au démarrage, l'heure reste fausse jusqu'à la synchronisation.                                                                                                                                                   |
+| « 1 an » ou « Toujours » lents               | Ces périodes recalculent des millions de lignes. Le résultat est mis en cache, de 30 s à 1 h selon la période.                                                                                                                                                   |
 
 ## Développement
 
@@ -182,14 +182,37 @@ cd ../ESP32/test
 python3 -m unittest test_firmware   # firmware compilé sur PC (g++), trames vérifiées par reader.py
 ```
 
+### Lint et formatage
+
+Les outils sont installés à la racine du dépôt (le Pi ne les installe jamais) ; Ruff et clang-format passent par [uv](https://docs.astral.sh/uv/).
+
+```bash
+npm install       # à la racine
+npm run lint      # vérifie tout
+npm run format    # corrige tout ce qui peut l'être
+```
+
+| Langage              | Outil                                  | Config                                 |
+| -------------------- | -------------------------------------- | -------------------------------------- |
+| JavaScript / JSX     | ESLint (règles React Hooks) + Prettier | `eslint.config.js`, `.prettierrc.json` |
+| JSON, YAML, Markdown | Prettier                               | `.prettierrc.json`, `.prettierignore`  |
+| Python               | Ruff (lint + format)                   | `ruff.toml`                            |
+| C++ (ESP32)          | clang-format                           | `.clang-format`                        |
+| Shell                | shellcheck (dans la CI)                |                                        |
+| Tous                 | indentation, fins de ligne             | `.editorconfig`                        |
+
+Les éditeurs qui gèrent EditorConfig, Prettier et ESLint (VS Code avec leurs extensions, par exemple) appliquent ces réglages automatiquement.
+
 ### Intégration continue
 
-À chaque push et à chaque pull request, [GitHub Actions](.github/workflows/ci.yml) lance deux jobs :
+À chaque push et à chaque pull request, [GitHub Actions](.github/workflows/ci.yml) lance trois jobs :
+
+- **Lint** : `npm run lint` (ESLint, Prettier, Ruff, clang-format).
 
 - **Raspberry** : tests, vérification que `Website/dist` correspond aux sources, tests de l'API sur une vraie MariaDB, démarrage du serveur sous Node 18 (la version du Pi), shellcheck de `install.sh` et `kiosk.sh`.
 - **ESP32** : tests du firmware, puis compilation pour ESP32 avec `arduino-cli` ; un avertissement de compilation fait échouer le job.
 
-Pour la lancer en local avec [act](https://github.com/nektos/act) : `docker stop wm-db` (elle prend le port 3306), puis `act push -P ubuntu-24.04=catthehacker/ubuntu:act-24.04`.
+Pour la lancer en local avec [act](https://github.com/nektos/act) : `act push -P ubuntu-24.04=catthehacker/ubuntu:act-24.04` (sa base de test utilise le port 3307, la base de dev peut rester allumée).
 
 ## Contributeurs
 

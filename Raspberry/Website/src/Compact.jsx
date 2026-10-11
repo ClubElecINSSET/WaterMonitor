@@ -28,7 +28,9 @@ export default function Compact({ link, chart, hours, setHours, latest, offline,
                 <Chip status={statusOf(m, value)} className="px-2 text-[11px]" />
               </span>
               <span className="flex items-baseline gap-1.5">
-                <span className="text-[44px] leading-none font-extrabold tracking-[-0.03em] tabular-nums">{fmt(value, m.digits)}</span>
+                <span className="text-[44px] leading-none font-extrabold tracking-[-0.03em] tabular-nums">
+                  {fmt(value, m.digits)}
+                </span>
                 <span className="text-[15px] font-semibold text-ink-soft">{m.unit}</span>
               </span>
               <Spark values={chart.map((r) => r[m.key])} height={36} />

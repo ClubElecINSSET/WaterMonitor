@@ -1,0 +1,6 @@
+line-length = 120
+target-version = "py311" # Raspberry Pi OS Bookworm
+
+[lint]
+# pycodestyle, pyflakes, imports, bugbear, pyupgrade
+select = ["E", "W", "F", "I", "B", "UP"]

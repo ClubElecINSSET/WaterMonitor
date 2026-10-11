@@ -22,19 +22,30 @@ before(async () => {
 after(() => server.kill());
 
 test("measures: last rows, oldest first, limit clamped", async () => {
-  const { count, rows } = await (await api("/api/measures?limit=5")).json();
+  const { count, now, rows } = await (await api("/api/measures?limit=5")).json();
+  assert.ok(Math.abs(now - Date.now() / 1000) < 5, "now is the server time, in seconds");
   assert.equal(rows.length, 5);
   assert.ok(count >= 1440);
   assert.ok(rows[0].ts <= rows[4].ts);
   assert.deepEqual(Object.keys(rows[0]).sort(), ["Conductivity", "Oxygen", "TDS", "Temperature", "id", "pH", "ts"]);
-  for (const [limit, expected] of [["-5", 1], ["1e9", 1], ["abc", 10], ["9999", 200]]) {
+  for (const [limit, expected] of [
+    ["-5", 1],
+    ["1e9", 1],
+    ["abc", 10],
+    ["9999", 200],
+  ]) {
     const body = await (await api(`/api/measures?limit=${limit}`)).json();
     assert.equal(body.rows.length, expected, `limit=${limit}`);
   }
 });
 
 test("history: buckets of at least 1 min, at most 145 points", async () => {
-  for (const [hours, bucket] of [[1, 60], [24, 600], [8760, 219000], [99999, 219000]]) {
+  for (const [hours, bucket] of [
+    [1, 60],
+    [24, 600],
+    [8760, 219000],
+    [99999, 219000],
+  ]) {
     const body = await (await api(`/api/history?hours=${hours}`)).json();
     assert.equal(body.bucket, bucket, `hours=${hours}`);
     assert.ok(body.points.length <= 145, `hours=${hours}: ${body.points.length} points`);

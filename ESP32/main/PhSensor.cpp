@@ -1,11 +1,10 @@
 
 #include "PhSensor.h"
 
-
 PhSensor::PhSensor(const uint8_t &channel) : Sensor(channel) {}
 PhSensor::~PhSensor() {}
 
-//Function to calculate pH value
+// Function to calculate pH value
 void PhSensor::poll()
 {
     pollVoltage();

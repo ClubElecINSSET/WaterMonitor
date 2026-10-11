@@ -5,19 +5,35 @@ on:
   pull_request:
 
 jobs:
+  lint:
+    name: Lint et formatage
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: astral-sh/setup-uv@v6 # ruff et clang-format, versions figées dans package.json
+      - run: npm ci
+      - name: ESLint, Prettier, Ruff, clang-format
+        run: npm run lint
+
   raspberry:
     name: Raspberry (site, API, lecteur)
     runs-on: ubuntu-24.04
     defaults:
       run:
         working-directory: Raspberry
+    env:
+      DB_PORT: 3307 # not 3306: running the CI locally with act must not clash with the dev database
     services:
       mariadb:
         image: mariadb:11
         env:
           MARIADB_ROOT_PASSWORD: root
           MARIADB_DATABASE: watermonitor
-        ports: ["3306:3306"]
+        ports: ["3307:3306"]
         options: >-
           --health-cmd "healthcheck.sh --connect --innodb_initialized"
           --health-interval 5s --health-timeout 5s --health-retries 20
@@ -51,7 +67,7 @@ jobs:
           node --input-type=module -e '
             import mysql from "mysql2/promise";
             import { readFileSync } from "node:fs";
-            const db = await mysql.createConnection({ host: "127.0.0.1", user: "root", password: "root", database: "watermonitor", multipleStatements: true });
+            const db = await mysql.createConnection({ host: "127.0.0.1", port: process.env.DB_PORT, user: "root", password: "root", database: "watermonitor", multipleStatements: true });
             for (const file of ["schema.sql", "test_values.sql"]) await db.query(readFileSync(file, "utf8"));
             await db.end();'
       - name: Tests de l'API

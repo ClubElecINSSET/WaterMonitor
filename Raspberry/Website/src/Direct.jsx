@@ -1,9 +1,21 @@
 import { useState } from "react";
 import { Area, AreaChart, CartesianGrid, ReferenceArea, XAxis, YAxis } from "recharts";
-import { ChartContainer } from "@/components/ui/chart";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
-import { METRICS, PERIODS, duration, fmt, formatTick, formatTime, stats, statusOf, zonesOf } from "@/metrics";
-import { Chip, DOT, Header, PeriodPicker, QualityPanel, Spark } from "@/parts";
+import {
+  DOT,
+  METRICS,
+  PERIODS,
+  duration,
+  fmt,
+  formatBucket,
+  formatTick,
+  formatTime,
+  stats,
+  statusOf,
+  zonesOf,
+} from "@/metrics";
+import { Chip, Header, PeriodPicker, QualityPanel, Spark } from "@/parts";
 
 // Value change since the previous non-empty measure
 function delta(m, rows) {
@@ -24,11 +36,19 @@ function Gauge({ m, value }) {
         <span
           key={i}
           style={{ flex: `${z.to - z.from} 1 0` }}
-          className={cn("opacity-60", DOT[z.status], i === 0 && "rounded-l-[3px]", i === zones.length - 1 && "rounded-r-[3px]")}
+          className={cn(
+            "opacity-60",
+            DOT[z.status],
+            i === 0 && "rounded-l-[3px]",
+            i === zones.length - 1 && "rounded-r-[3px]",
+          )}
         />
       ))}
       {pos != null && (
-        <span style={{ left: `calc(${pos.toFixed(1)}% - 2.5px)` }} className="absolute -top-[5px] h-4 w-[5px] rounded-[3px] bg-ink shadow-[0_0_0_2px_#fff]" />
+        <span
+          style={{ left: `calc(${pos.toFixed(1)}% - 2.5px)` }}
+          className="absolute -top-[5px] h-4 w-[5px] rounded-[3px] bg-ink shadow-[0_0_0_2px_#fff]"
+        />
       )}
     </span>
   );
@@ -45,7 +65,7 @@ function MetricTile({ m, rows, chart, latest, selected, onPick, dimmed }) {
       className={cn(
         "panel flex cursor-pointer flex-col items-start gap-2 border-[3px] px-4 py-3.5 text-left text-ink",
         selected ? "border-pink" : "border-white",
-        dimmed && "opacity-60"
+        dimmed && "opacity-60",
       )}
     >
       <span className="flex w-full items-center justify-between gap-2">
@@ -53,7 +73,9 @@ function MetricTile({ m, rows, chart, latest, selected, onPick, dimmed }) {
         <Chip status={status} />
       </span>
       <span className="flex items-baseline gap-1.5">
-        <span className="text-[42px] leading-none font-extrabold tracking-[-0.03em] tabular-nums">{fmt(value, m.digits)}</span>
+        <span className="text-[42px] leading-none font-extrabold tracking-[-0.03em] tabular-nums">
+          {fmt(value, m.digits)}
+        </span>
         <span className="text-[15px] font-semibold text-ink-soft">{m.unit}</span>
       </span>
       <span className="h-4 text-[12.5px] font-medium text-ink-soft">{delta(m, rows)}</span>
@@ -66,7 +88,7 @@ function MetricTile({ m, rows, chart, latest, selected, onPick, dimmed }) {
   );
 }
 
-function Evolution({ m, chart, hours, span, setHours }) {
+function Evolution({ m, chart, hours, span, bucket, setHours }) {
   const data = chart.map((r) => ({ ts: r.ts, v: r[m.key] }));
   const values = data.map((d) => d.v).filter((v) => v != null);
   const s = stats(values);
@@ -79,6 +101,7 @@ function Evolution({ m, chart, hours, span, setHours }) {
   lo -= pad;
   hi += pad;
   const ticks = [0, 1, 2, 3].map((k) => lo + ((hi - lo) * k) / 3);
+  // eslint-disable-next-line react-hooks/purity -- the chart window ends now, recomputed at each poll
   const end = Math.floor(Date.now() / 1000);
   const start = end - span * 3600;
   const last = data.findLastIndex((d) => d.v != null);
@@ -94,7 +117,11 @@ function Evolution({ m, chart, hours, span, setHours }) {
         </div>
         <PeriodPicker hours={hours} setHours={setHours} />
         <dl className="m-0 flex gap-[22px]">
-          {[["Min", s.min], ["Moyenne", s.avg], ["Max", s.max]].map(([label, v]) => (
+          {[
+            ["Min", s.min],
+            ["Moyenne", s.avg],
+            ["Max", s.max],
+          ].map(([label, v]) => (
             <div key={label} className="flex flex-col items-end">
               <dt className="text-xs font-semibold text-ink-soft">{label}</dt>
               <dd className="m-0 text-[19px] font-extrabold tabular-nums">{fmt(v, m.digits)}</dd>
@@ -105,21 +132,78 @@ function Evolution({ m, chart, hours, span, setHours }) {
       {values.length < 2 ? (
         <p className="grid flex-1 place-items-center text-ink-soft">Pas assez de mesures sur cette période</p>
       ) : (
-        <ChartContainer config={{ v: { label: m.label, color: "#2f62a8" } }} className="aspect-auto min-h-0 w-full flex-1 font-mono">
+        <ChartContainer
+          config={{ v: { label: m.label, color: "#2f62a8" } }}
+          // Recharts focuses the chart on click/tap: keep the outline for keyboard focus only
+          className="aspect-auto min-h-0 w-full flex-1 font-mono [&_:focus:not(:focus-visible)]:outline-none"
+        >
           <AreaChart data={data} margin={{ top: 10, right: 36, bottom: 0, left: 0 }}>
             <CartesianGrid vertical={false} stroke="#e1ece7" />
-            <ReferenceArea y1={Math.max(lo, good.from)} y2={Math.min(hi, good.to)} fill="#bfe6d4" fillOpacity={0.55} ifOverflow="hidden" />
+            <ReferenceArea
+              y1={Math.max(lo, good.from)}
+              y2={Math.min(hi, good.to)}
+              fill="#bfe6d4"
+              fillOpacity={0.55}
+              ifOverflow="hidden"
+            />
             <XAxis
-              dataKey="ts" type="number" domain={[start, end]} ticks={[start, (start + end) / 2, end]}
-              tickFormatter={(ts) => formatTick(ts, span)} tickLine={false} axisLine={false} tick={{ fill: "#4d6b63", fontSize: 12 }}
+              dataKey="ts"
+              type="number"
+              domain={[start, end]}
+              ticks={[start, (start + end) / 2, end]}
+              tickFormatter={(ts) => formatTick(ts, span)}
+              tickLine={false}
+              axisLine={false}
+              tick={{ fill: "#4d6b63", fontSize: 12 }}
             />
             <YAxis
-              domain={[lo, hi]} ticks={ticks} width={48} tickLine={false} axisLine={false} tick={{ fill: "#4d6b63", fontSize: 12 }}
+              domain={[lo, hi]}
+              ticks={ticks}
+              width={48}
+              tickLine={false}
+              axisLine={false}
+              tick={{ fill: "#4d6b63", fontSize: 12 }}
               tickFormatter={(v) => fmt(v, m.digits === 0 ? 0 : 1)}
             />
+            {/* Mouse hover or finger on the touch screen: value and time of the point */}
+            <ChartTooltip
+              cursor={{ stroke: "#4d6b63", strokeWidth: 1.5, strokeDasharray: "4 4" }}
+              content={(props) =>
+                props.payload?.[0]?.value == null ? null : (
+                  <ChartTooltipContent
+                    {...props}
+                    className="panel gap-1 border-none bg-white px-3.5 py-2.5 font-sans text-sm"
+                    labelFormatter={(_, [point]) => (
+                      <span className="text-[13px] font-semibold text-ink-soft">
+                        {formatBucket(point.payload.ts, bucket)}
+                      </span>
+                    )}
+                    formatter={(v) => (
+                      <span className="flex items-baseline gap-1.5">
+                        {bucket > 60 && <span className="text-[13px] font-medium text-ink-soft">Moyenne</span>}
+                        <span className="text-xl font-extrabold tabular-nums">{fmt(v, m.digits)}</span>
+                        <span className="font-semibold text-ink-soft">{m.unit}</span>
+                      </span>
+                    )}
+                  />
+                )
+              }
+            />
             <Area
-              dataKey="v" type="linear" stroke="#2f62a8" strokeWidth={3} fill="#2f62a8" fillOpacity={0.1} isAnimationActive={false}
-              dot={(p) => (p.index === last ? <circle key="last" cx={p.cx} cy={p.cy} r={7} fill="#fff" stroke="#d6157a" strokeWidth={3.5} /> : <g key={p.index} />)}
+              dataKey="v"
+              type="linear"
+              stroke="#2f62a8"
+              strokeWidth={3}
+              fill="#2f62a8"
+              fillOpacity={0.1}
+              isAnimationActive={false}
+              dot={(p) =>
+                p.index === last ? (
+                  <circle key="last" cx={p.cx} cy={p.cy} r={7} fill="#fff" stroke="#d6157a" strokeWidth={3.5} />
+                ) : (
+                  <g key={p.index} />
+                )
+              }
             />
           </AreaChart>
         </ChartContainer>
@@ -142,14 +226,35 @@ function SystemPanel({ latest, ageMinutes, count }) {
       {lines.map(([label, value]) => (
         <div key={label} className="flex justify-between gap-2.5">
           <span className="font-medium text-ink-soft">{label}</span>
-          <span className={cn("font-mono", label === "Capteurs en erreur" && missing.length && "font-sans font-bold text-[#b8231b]")}>{value}</span>
+          <span
+            className={cn(
+              "font-mono",
+              label === "Capteurs en erreur" && missing.length && "font-sans font-bold text-[#b8231b]",
+            )}
+          >
+            {value}
+          </span>
         </div>
       ))}
     </section>
   );
 }
 
-export default function Direct({ route, link, rows, chart, hours, span, setHours, latest, ageMinutes, offline, count, quality }) {
+export default function Direct({
+  bucket,
+  route,
+  link,
+  rows,
+  chart,
+  hours,
+  span,
+  setHours,
+  latest,
+  ageMinutes,
+  offline,
+  count,
+  quality,
+}) {
   const [selected, setSelected] = useState("pH");
   const m = METRICS.find((x) => x.key === selected);
   return (
@@ -157,24 +262,50 @@ export default function Direct({ route, link, rows, chart, hours, span, setHours
       <Header route={route} link={link} />
 
       {offline && latest && (
-        <div role="status" className="relative flex items-center gap-3.5 rounded-2xl bg-[#fde3e1] px-[18px] py-3 text-[15px] font-medium text-[#7a1712]">
-          <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="#e5332a" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 3 L22 20 H2 Z" /><path d="M12 10 v4" /><path d="M12 17 v0.5" />
+        <div
+          role="status"
+          className="relative flex items-center gap-3.5 rounded-2xl bg-[#fde3e1] px-[18px] py-3 text-[15px] font-medium text-[#7a1712]"
+        >
+          <svg
+            width="22"
+            height="22"
+            viewBox="0 0 24 24"
+            aria-hidden="true"
+            fill="none"
+            stroke="#e5332a"
+            strokeWidth="2.2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M12 3 L22 20 H2 Z" />
+            <path d="M12 10 v4" />
+            <path d="M12 17 v0.5" />
           </svg>
           <span>
-            <strong className="font-extrabold">Aucune trame reçue depuis {duration(ageMinutes)}.</strong> Valeurs affichées : dernière mesure connue ({formatTime(latest.ts)}). Vérifier l'alimentation de la bouée et le module XBee.
+            <strong className="font-extrabold">Aucune trame reçue depuis {duration(ageMinutes)}.</strong> Valeurs
+            affichées : dernière mesure connue ({formatTime(latest.ts)}). Vérifier l'alimentation de la bouée et le
+            module XBee.
           </span>
         </div>
       )}
 
       <section aria-label="Mesures actuelles" className="relative grid grid-cols-5 gap-3">
         {METRICS.map((x) => (
-          <MetricTile key={x.key} m={x} rows={rows} chart={chart} latest={latest} selected={x.key === selected} onPick={() => setSelected(x.key)} dimmed={offline} />
+          <MetricTile
+            key={x.key}
+            m={x}
+            rows={rows}
+            chart={chart}
+            latest={latest}
+            selected={x.key === selected}
+            onPick={() => setSelected(x.key)}
+            dimmed={offline}
+          />
         ))}
       </section>
 
       <div className="relative grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_340px] gap-3">
-        <Evolution m={m} chart={chart} hours={hours} span={span} setHours={setHours} />
+        <Evolution m={m} chart={chart} hours={hours} span={span} bucket={bucket} setHours={setHours} />
         <aside className="flex min-h-0 flex-col gap-3">
           {/* Offline: the banner replaces the verdict, which would only say "—" (and leaves no room at 720 px) */}
           {!offline && <QualityPanel quality={quality} latest={latest} offline={offline} />}

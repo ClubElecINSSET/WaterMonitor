@@ -1,31 +1,64 @@
 // Thresholds tuned for the Parc d'Isle marsh. `scale` is only the range drawn on the gauges.
 export const METRICS = [
   {
-    key: "Temperature", label: "Température", short: "Temp.", unit: "°C", digits: 1, ideal: "< 15 °C", scale: [0, 35],
+    key: "Temperature",
+    label: "Température",
+    short: "Temp.",
+    unit: "°C",
+    digits: 1,
+    ideal: "< 15 °C",
+    scale: [0, 35],
     status: (v) => (v < 15 ? "good" : v <= 25 ? "warning" : "critical"),
   },
   {
-    key: "pH", label: "pH", short: "pH", unit: "", digits: 2, ideal: "5,5 – 7,0", scale: [4, 9],
+    key: "pH",
+    label: "pH",
+    short: "pH",
+    unit: "",
+    digits: 2,
+    ideal: "5,5 – 7,0",
+    scale: [4, 9],
     status: (v) => (v < 5.5 ? "critical" : v <= 7 ? "good" : "warning"),
   },
   {
-    key: "Oxygen", label: "Oxygène dissous", short: "O₂", unit: "mg/L", digits: 1, ideal: "4 – 7 mg/L", scale: [0, 12],
+    key: "Oxygen",
+    label: "Oxygène dissous",
+    short: "O₂",
+    unit: "mg/L",
+    digits: 1,
+    ideal: "4 – 7 mg/L",
+    scale: [0, 12],
     status: (v) => (v < 4 ? "critical" : v <= 7 ? "good" : "warning"),
   },
   {
-    key: "TDS", label: "TDS", short: "TDS", unit: "ppm", digits: 0, ideal: "< 100 ppm", scale: [0, 700],
+    key: "TDS",
+    label: "TDS",
+    short: "TDS",
+    unit: "ppm",
+    digits: 0,
+    ideal: "< 100 ppm",
+    scale: [0, 700],
     status: (v) => (v < 100 ? "good" : v <= 500 ? "warning" : "critical"),
   },
   {
-    key: "Conductivity", label: "Conductivité", short: "Cond.", unit: "µS/cm", digits: 0, ideal: "< 150 µS/cm", scale: [0, 700],
+    key: "Conductivity",
+    label: "Conductivité",
+    short: "Cond.",
+    unit: "µS/cm",
+    digits: 0,
+    ideal: "< 150 µS/cm",
+    scale: [0, 700],
     status: (v) => (v < 150 ? "good" : v <= 500 ? "warning" : "critical"),
   },
 ];
 
 export const STATUS_LABEL = { good: "Bon", warning: "À surveiller", critical: "Critique", none: "Indisponible" };
+// Status dot colours (literal class names so Tailwind generates them)
+export const DOT = { good: "bg-[#1a9e74]", warning: "bg-[#ef8a17]", critical: "bg-[#e5332a]", none: "bg-[#9aa9a4]" };
 export const QUALITY_WORD = { good: "Bon", warning: "Moyen", critical: "Mauvais", none: "Inconnu" };
-export const STALE_MINUTES = 60;
-export const OFFLINE_MINUTES = 180;
+// The buoy sends a frame every second: margin for radio dropouts (and for sending once a minute later)
+export const STALE_MINUTES = 15;
+export const OFFLINE_MINUTES = 30;
 
 export const statusOf = (m, v) => (v == null ? "none" : m.status(v));
 
@@ -42,7 +75,11 @@ export function duration(minutes) {
 }
 
 export const formatTime = (ts, seconds = false) =>
-  new Date(ts * 1000).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", ...(seconds && { second: "2-digit" }) });
+  new Date(ts * 1000).toLocaleTimeString("fr-FR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    ...(seconds && { second: "2-digit" }),
+  });
 
 // Same rules as before: ≥2 alerts or offline → critical; 1 alert, ≥2 warnings or stale → warning; ≥3 good → good
 export function overallQuality(latest, ageMinutes) {
@@ -89,6 +126,15 @@ export const PERIODS = [
   { hours: 8760, label: "1 an", text: "Dernière année" },
   { hours: 0, label: "Toujours", text: "Depuis la première mesure" },
 ];
+
+// Chart tooltip: points are averages over `bucket` seconds starting at `ts` (a single measure at 1 min)
+export function formatBucket(ts, bucket) {
+  const day = (t) =>
+    new Date(t * 1000).toLocaleDateString("fr-FR", { weekday: "short", day: "numeric", month: "short" });
+  if (bucket <= 60) return `${day(ts)}, ${formatTime(ts)}`;
+  if (bucket < 86400) return `${day(ts)}, ${formatTime(ts)} – ${formatTime(ts + bucket)}`;
+  return `${day(ts)} – ${day(ts + bucket)}`;
+}
 
 // Axis label: time for short periods, day + hour beyond a day, date beyond a week, month beyond a year
 export function formatTick(ts, hours) {

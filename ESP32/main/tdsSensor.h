@@ -4,7 +4,6 @@
 #include "baseSensorClass.h"
 #include "Temperature.h"
 
-
 class tdsSensor : public Sensor
 {
 private:

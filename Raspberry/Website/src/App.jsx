@@ -54,13 +54,21 @@ export default function App() {
 
   const rows = data?.rows ?? [];
   const latest = rows.length ? rows[rows.length - 1] : null;
-  const ageMinutes = latest ? (Date.now() / 1000 - latest.ts) / 60 : Infinity;
+  const ageMinutes = latest ? (data.now - latest.ts) / 60 : Infinity; // server clock, refreshed at each poll
   const offline = data !== undefined && ageMinutes >= OFFLINE_MINUTES;
   const link = error ? "error" : data === undefined ? "loading" : offline ? "offline" : "online";
   const view = {
-    route, link, rows, latest, ageMinutes, offline,
+    route,
+    link,
+    rows,
+    latest,
+    ageMinutes,
+    offline,
     count: data?.count ?? 0,
-    hours, setHours, chart,
+    hours,
+    setHours,
+    chart,
+    bucket: history?.bucket ?? 60,
     span: history?.hours ?? hours, // hours actually covered by the chart (resolves "Toujours")
     quality: latest ? overallQuality(latest, ageMinutes) : "none",
   };

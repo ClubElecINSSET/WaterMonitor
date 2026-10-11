@@ -10,16 +10,16 @@
 
 #include "sendToXbee.h"
 
-//Defines whether we want to output data to Xbee or
-//in a readable format in the serial monitor
+// Defines whether we want to output data to Xbee or
+// in a readable format in the serial monitor
 #define sendToSerialMonitor false
 
 enum MCP_PIN : uint8_t
 {
-    MCP_CS      = 5,
-    MCP_CLOCK   = 18,
-    MCP_MOSI    = 23,
-    MCP_MISO    = 19
+    MCP_CS    = 5,
+    MCP_CLOCK = 18,
+    MCP_MOSI  = 23,
+    MCP_MISO  = 19
 };
 
 static MCP3008 mcp(MCP_CLOCK, MCP_MOSI, MCP_MISO, MCP_CS);
@@ -39,35 +39,35 @@ void loop()
         TDS
     };
 
-    PhSensor            ph              (MCP_CHANNEL::PH                       );
-    TemperatureSensor   temperature     (MCP_CHANNEL::TEMPERATURE              );
-    tdsSensor           tds             (MCP_CHANNEL::TDS,          temperature);
-    ConductivitySensor  conductivity    (MCP_CHANNEL::CONDUCTIVITY, temperature);
-    OxygenSensor        oxygen          (MCP_CHANNEL::OXYGEN,       temperature);
+    PhSensor           ph(MCP_CHANNEL::PH);
+    TemperatureSensor  temperature(MCP_CHANNEL::TEMPERATURE);
+    tdsSensor          tds(MCP_CHANNEL::TDS, temperature);
+    ConductivitySensor conductivity(MCP_CHANNEL::CONDUCTIVITY, temperature);
+    OxygenSensor       oxygen(MCP_CHANNEL::OXYGEN, temperature);
 
-    //Read sensor values
+    // Read sensor values
     temperature.poll();
     ph.poll();
     tds.poll();
     conductivity.poll();
     oxygen.poll();
 
-    #if sendToSerialMonitor == true
+#if sendToSerialMonitor == true
 
-        //Output sensor data to serial monitor
-        temperature.printState();
-        ph.printState();
-        tds.printState();
-        conductivity.printState();
-        oxygen.printState();
+    // Output sensor data to serial monitor
+    temperature.printState();
+    ph.printState();
+    tds.printState();
+    conductivity.printState();
+    oxygen.printState();
 
-        Serial.println();
+    Serial.println();
 
-    #else
+#else
 
-        sendToXbee(ph, temperature, tds, conductivity, oxygen);
+    sendToXbee(ph, temperature, tds, conductivity, oxygen);
 
-    #endif
+#endif
 
     delay(1000);
 }

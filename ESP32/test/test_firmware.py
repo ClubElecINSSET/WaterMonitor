@@ -1,7 +1,8 @@
 """Builds the ESP32 firmware on the PC (g++, fake ADC) and checks its frames with the Pi's decoder.
 
-    cd ESP32/test && python3 -m unittest test_firmware
+cd ESP32/test && python3 -m unittest test_firmware
 """
+
 import math
 import pathlib
 import shutil
@@ -27,9 +28,21 @@ class FirmwareTest(unittest.TestCase):
         sources = [str(p) for p in (HERE.parent / "main").glob("*.cpp")]
         # Sanitizers make any out-of-bounds read or undefined behaviour abort the test
         subprocess.run(
-            ["g++", "-std=gnu++17", "-g", "-fsanitize=address,undefined", "-fno-sanitize-recover=all",
-             f"-I{HERE}", f"-I{HERE.parent / 'main'}", "-include", "Arduino.h",
-             str(HERE / "harness.cpp"), *sources, "-o", str(cls.exe)],
+            [
+                "g++",
+                "-std=gnu++17",
+                "-g",
+                "-fsanitize=address,undefined",
+                "-fno-sanitize-recover=all",
+                f"-I{HERE}",
+                f"-I{HERE.parent / 'main'}",
+                "-include",
+                "Arduino.h",
+                str(HERE / "harness.cpp"),
+                *sources,
+                "-o",
+                str(cls.exe),
+            ],
             check=True,
         )
 
@@ -43,8 +56,10 @@ class FirmwareTest(unittest.TestCase):
         out = subprocess.run([str(self.exe)], input=stdin, capture_output=True, text=True, check=True)
         lines = out.stdout.splitlines()
         results = []
-        for values, frame in zip(lines[::2], lines[1::2]):
-            computed = {c: (None if math.isnan(float(v)) else float(v)) for c, v in zip(COLUMNS, values.split())}
+        for values, frame in zip(lines[::2], lines[1::2], strict=True):
+            computed = {
+                c: (None if math.isnan(float(v)) else float(v)) for c, v in zip(COLUMNS, values.split(), strict=True)
+            }
             results.append((computed, bytes.fromhex(frame)))
         return results
 
@@ -62,7 +77,8 @@ class FirmwareTest(unittest.TestCase):
     def test_rounding_carries_into_the_integer_part(self):
         # 6.996 must arrive as 7.00, not 6.00: look for such values in the sweep
         carried = [
-            (c, decode_frame(f)) for c, f in self.run_firmware([(a, a, TEMP_25C, a, a) for a in range(1024)])
+            (c, decode_frame(f))
+            for c, f in self.run_firmware([(a, a, TEMP_25C, a, a) for a in range(1024)])
             if any(v is not None and v % 1 >= 0.995 for v in c.values())
         ]
         self.assertTrue(carried, "the sweep should contain values like x.995+")
@@ -92,7 +108,7 @@ class FirmwareTest(unittest.TestCase):
     def test_reader_resyncs_on_the_firmware_stream(self):
         stream = b"".join(f for _, f in self.run_firmware([(a, a, TEMP_25C, a, a) for a in range(0, 1024, 97)]))
         noisy = b"\x00\xa0boot garbage" + stream[:7] + stream  # partial frame, like an ESP32 reset mid-send
-        chunks = [noisy[i:i + 5] for i in range(0, len(noisy), 5)]
+        chunks = [noisy[i : i + 5] for i in range(0, len(noisy), 5)]
         self.assertEqual(len(list(frames(chunks))), len(stream) // 16)
 
 
