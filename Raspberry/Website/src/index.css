@@ -1,0 +1,89 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+/* Kiosk design: one light theme, colors from the WaterMonitor canvas */
+:root {
+  --radius: 1.125rem;
+  --ground: #1c9e80;
+  --ink: #0b3d33;
+  --ink-soft: #4d6b63;
+  --mint: #bfe6d4;
+  --mint-soft: #d6ece2;
+  --line: #e1ece7;
+  --accent-pink: #d6157a;
+  --blue: #2f62a8;
+
+  --background: var(--ground);
+  --foreground: var(--ink);
+  --card: #ffffff;
+  --card-foreground: var(--ink);
+  --popover: #ffffff;
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: #ffffff;
+  --secondary: var(--line);
+  --secondary-foreground: var(--ink);
+  --muted: var(--line);
+  --muted-foreground: var(--ink-soft);
+  --accent: var(--line);
+  --accent-foreground: var(--ink);
+  --destructive: #e5332a;
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--accent-pink);
+}
+
+@theme inline {
+  --font-sans: "Montserrat", system-ui, sans-serif;
+  --font-script: "Kaushan Script", cursive;
+  --font-mono: "IBM Plex Mono", ui-monospace, monospace;
+  --radius-sm: calc(var(--radius) - 10px);
+  --radius-md: calc(var(--radius) - 6px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-ground: var(--ground);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-mint: var(--mint);
+  --color-mint-soft: var(--mint-soft);
+  --color-line: var(--line);
+  --color-pink: var(--accent-pink);
+  --color-blue: var(--blue);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    margin: 0;
+    overflow: hidden;
+    cursor: default;
+  }
+}
+
+/* White panel used across the three screens */
+@utility panel {
+  background: #ffffff;
+  border-radius: 18px;
+  box-shadow: 0 3px 0 rgb(11 61 51 / 0.18);
+}

@@ -66,21 +66,47 @@ The primary goal of this project is to develop a floating base equipped with var
 
 ### Installing on Raspberry Pi
 
-To set up the necessary environment on your Raspberry Pi, run the following command in the terminal:
+Download the installation script, make it executable and run it:
 
 ```bash
 curl -o install.sh https://raw.githubusercontent.com/LordYoni/WaterMonitor/refs/heads/main/Raspberry/install.sh
-```
-This command modifies the permissions of install.sh, making it executable. It's necessary to do this before you can run the script.
-
-```bash
 chmod +x install.sh
-```
-This command downloads the installation script. Once downloaded, you can run it to install the required components.
-
-```bash
 sudo ./install.sh
 ```
+
+The script can be re-run at any time to update: it keeps the database and its passwords. It sets up:
+
+- **MariaDB**: database `watermonitor`, with a read-only user for the website and an insert-only user for the reader. The passwords are generated and stored in `/etc/watermonitor/`.
+- **`watermonitor-web`**: the Node.js dashboard (`Raspberry/server.js`) on port 80.
+- **`watermonitor-reader`**: the Python XBee reader (`Raspberry/reader.py`), which decodes the frames sent by the ESP32 and stores them.
+
+Useful commands:
+
+```bash
+journalctl -u watermonitor-web -u watermonitor-reader -f      # logs
+sudo mysql watermonitor < /opt/watermonitor/Raspberry/test_values.sql   # 24 h of demo data
+```
+
+### Working on the dashboard (PC)
+
+The dashboard is React + [shadcn/ui](https://ui.shadcn.com) (Tailwind), built with Vite. Needs Node 20+ and Docker. From `Raspberry/`:
+
+```bash
+npm install
+npm run db      # start a local MariaDB in Docker
+npm run seed    # create the table and (re)load 24 h of demo data
+npm run dev     # http://localhost:8080, with hot reload
+npm test        # dashboard + reader tests
+npm run build   # rebuild Website/dist, then commit it
+```
+
+Screens: `/#/` (live), `/#/historique` (last 50 measures), `/#/compact` (official 800×480 Pi display, picked automatically on small screens).
+
+On Raspberry Pi OS with desktop, the installer also opens the dashboard full screen at boot (Chromium kiosk). Use `sudo KIOSK=0 ./install.sh` to skip it.
+
+The Pi does not build anything: it serves the committed `Website/dist`. Always run `npm run build` before committing a dashboard change.
+
+The XBee serial port defaults to `/dev/ttyUSB0`. To change it, edit `/etc/watermonitor/reader.env`, then run `sudo systemctl restart watermonitor-reader`.
 
 ## 🤝 Contributing
 

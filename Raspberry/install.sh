@@ -1,237 +1,114 @@
-#! /usr/bin/bash
+#!/usr/bin/env bash
+# WaterMonitor installer for Raspberry Pi OS. Safe to re-run: it updates the code
+# and keeps the database and its passwords.
+#   sudo ./install.sh                 install / update from the main branch
+#   sudo BRANCH=dev ./install.sh      install another branch
+#   sudo KIOSK=0 ./install.sh         do not open the dashboard full screen at boot
+set -euo pipefail
 
-# Function to install a package if not already installed
-install_if_not_exists() {
-    # Check if the package is installed
-    if ! dpkg -l | grep -q "^ii  $1 "; then  
-        echo "Installing $1..."              # Notify about installation
-        sudo apt install "$1" -y              # Install the package
-    else
-        echo "$1 is already installed."        # Notify if already installed
-    fi
-}
+REPO_URL="${REPO_URL:-https://github.com/LordYoni/WaterMonitor.git}"
+BRANCH="${BRANCH:-main}"
+KIOSK="${KIOSK:-1}"
+INSTALL_DIR="/opt/watermonitor"
+APP_DIR="$INSTALL_DIR/Raspberry"
+CONF_DIR="/etc/watermonitor"
+DB_NAME="watermonitor"
+SERVICE_USER="watermonitor"
 
-set -e  # Exit immediately if any command fails
+if [ "$EUID" -ne 0 ]; then
+    echo "Please run as root: sudo ./install.sh"
+    exit 1
+fi
 
-# Automatically get the current user
-WEB_USER=$(whoami)  
+echo "==> Installing system packages"
+apt-get update
+apt-get install -y curl git openssl mariadb-server nodejs npm python3-venv
 
-# Display starting message 
-echo "
-Starting...
-"
+echo "==> Creating the $SERVICE_USER system user"
+if ! id "$SERVICE_USER" >/dev/null 2>&1; then
+    useradd --system --no-create-home --shell /usr/sbin/nologin --groups dialout "$SERVICE_USER"
+fi
 
-sleep 2  # Pause for 2 seconds
-
-# Display the automatically set WEB_USER
-echo "Using the current user for the web server (WEB_USER): $WEB_USER"  
-
-# Update the system packages
-echo "Updating the system..."  
-
-# Configure pending package configurations
-sudo dpkg --configure -a  
-
-# Update package list and upgrade installed packages
-sudo apt update && sudo apt upgrade -y  
-
-# Install Git
-install_if_not_exists git  
-
-# Configure a swap file if the memory is limited
-echo "Configuring the swap file..."  
-
-# Setup swap file
-sudo dphys-swapfile setup  
-
-# Enable swap file service
-sudo systemctl enable dphys-swapfile  
-
-# Start swap file service
-sudo systemctl start dphys-swapfile  
-
-# Install Apache
-install_if_not_exists apache2  
-
-# Change ownership of the web directory to the current user
-echo "Changing ownership of the web directory to $WEB_USER"  
-sudo chown -R "$WEB_USER" /var/www/html  
-
-# Install MariaDB
-install_if_not_exists mariadb-server  
-
-# Install PHP 
-install_if_not_exists php  
-
-# File to store user information
-USER_INFO_FILE="$HOME/.db_user_info"  
-
-# Check if user information file exists
-if [ -f "$USER_INFO_FILE" ]; then  
-    source "$USER_INFO_FILE"  # Load user info
+echo "==> Fetching the code ($BRANCH)"
+if [ -d "$INSTALL_DIR/.git" ]; then
+    git -C "$INSTALL_DIR" fetch --depth 1 origin "$BRANCH"
+    git -C "$INSTALL_DIR" checkout -B "$BRANCH" FETCH_HEAD
 else
-    # Prompt for DB username
-    while true; do
-        echo "Please enter the username you want for the MariaDB database (DB_USER):"
-        read DB_USER
-
-        # Check if username is empty
-        if [[ -z "$DB_USER" ]]; then  
-            echo "Error: User cannot be empty. Please try again."
-        else
-            break
-        fi
-    done
-
-    # Prompt for DB password
-    while true; do
-        echo "Please enter the password you want for the MariaDB database (DB_PASSWORD):"
-        read -s DB_PASSWORD  
-
-        # Check if password is empty
-        if [[ -z "$DB_PASSWORD" ]]; then  
-            echo "Error: Password cannot be empty. Please try again."
-        else
-            break
-        fi
-    done
-
-    # Prompt for DB name
-    while true; do
-        echo "Please enter the name of the database you want to create (DB_NAME):"
-        read DB_NAME
-
-        # Check if database name is empty
-        if [[ -z "$DB_NAME" ]]; then  
-            echo "Error: Database name cannot be empty. Please try again."
-        else
-            break
-        fi
-    done
-
-    # Save user information to file
-    echo "DB_USER=$DB_USER" > "$USER_INFO_FILE"
-    echo "DB_PASSWORD=$DB_PASSWORD" >> "$USER_INFO_FILE"
-    echo "DB_NAME=$DB_NAME" >> "$USER_INFO_FILE"
+    git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$INSTALL_DIR"
 fi
 
-# Configure phpMyAdmin installation
-echo "Configuring phpMyAdmin installation..."  
-echo "phpmyadmin phpmyadmin/dbconfig-install boolean true" | sudo debconf-set-selections
-echo "phpmyadmin phpmyadmin/mysql/admin-pass password $DB_PASSWORD " | sudo debconf-set-selections
-echo "phpmyadmin phpmyadmin/mysql/app-pass password $DB_PASSWORD" | sudo debconf-set-selections
-echo "phpmyadmin phpmyadmin/reconfigure-webserver multiselect apache2" | sudo debconf-set-selections
+echo "==> Configuring the database"
+mkdir -p "$CONF_DIR"
+chmod 700 "$CONF_DIR"
+# Reuse passwords from a previous install, otherwise generate new ones
+WEB_PASS=$(grep -s '^DB_PASS=' "$CONF_DIR/web.env" | cut -d= -f2- || true)
+READER_PASS=$(grep -s '^DB_PASS=' "$CONF_DIR/reader.env" | cut -d= -f2- || true)
+WEB_PASS="${WEB_PASS:-$(openssl rand -hex 16)}"
+READER_PASS="${READER_PASS:-$(openssl rand -hex 16)}"
 
-# Install phpMyAdmin
-install_if_not_exists phpmyadmin  
+systemctl enable --now mariadb
+mysql <<SQL
+CREATE DATABASE IF NOT EXISTS $DB_NAME;
+CREATE USER IF NOT EXISTS 'wm_web'@'localhost' IDENTIFIED BY '$WEB_PASS';
+ALTER USER 'wm_web'@'localhost' IDENTIFIED BY '$WEB_PASS';
+CREATE USER IF NOT EXISTS 'wm_reader'@'localhost' IDENTIFIED BY '$READER_PASS';
+ALTER USER 'wm_reader'@'localhost' IDENTIFIED BY '$READER_PASS';
+SQL
+mysql "$DB_NAME" < "$APP_DIR/schema.sql"
+mysql <<SQL
+GRANT SELECT ON $DB_NAME.Data TO 'wm_web'@'localhost';
+GRANT INSERT ON $DB_NAME.Data TO 'wm_reader'@'localhost';
+FLUSH PRIVILEGES;
+SQL
 
-# Create the config.php file for database connection
-CONFIG_FILE="/var/www/html/config.php"
-echo "<?php" | sudo tee $CONFIG_FILE
-echo "define('DB_HOST', 'localhost');" | sudo tee -a $CONFIG_FILE
-echo "define('DB_USER', '$DB_USER');" | sudo tee -a $CONFIG_FILE
-echo "define('DB_PASS', '$DB_PASSWORD');" | sudo tee -a $CONFIG_FILE
-echo "define('DB_NAME', '$DB_NAME');" | sudo tee -a $CONFIG_FILE
-
-# Change file ownership and set permissions
-sudo chown www-data:www-data /var/www/html/config.php  
-sudo chmod 600 /var/www/html/config.php  
-
-# Configure MariaDB
-echo "Configuring MariaDB..."  
-sudo mysql -u root <<EOF
-GRANT ALL PRIVILEGES ON *.* TO '$DB_USER'@'localhost' IDENTIFIED BY '$DB_PASSWORD' WITH GRANT OPTION;  # Grant privileges
-FLUSH PRIVILEGES;  # Flush privileges
-GRANT INSERT ON *.* TO 'dbaccess'@'localhost' IDENTIFIED BY 'accessPASS';  # Grant access to dbaccess user
-FLUSH PRIVILEGES;  # Flush privileges again
-
--- Create the database and table
-CREATE DATABASE $DB_NAME;  # Create the database
-USE $DB_NAME;  # Use the database
-CREATE TABLE Data (  # Create a table named Data
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    Time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    TDS FLOAT,
-    pH FLOAT,
-    Oxygen FLOAT,
-    Conductivity FLOAT,
-    Temperature FLOAT
-);
-EOF
-
-# Download random value SQL script
-curl -o test_values.sql https://raw.githubusercontent.com/LordYoni/WaterMonitor/refs/heads/main/Raspberry/test_values.sql  
-
-# Check if phpMyAdmin configuration is already included in Apache
-if ! grep -q "Include /etc/phpmyadmin/apache.conf" /etc/apache2/apache2.conf; then  
-    echo "Including phpMyAdmin in Apache configuration..."  
-    echo "Include /etc/phpmyadmin/apache.conf" | sudo tee -a /etc/apache2/apache2.conf  
-fi
-
-# Restart Apache to apply changes
-echo "Restarting Apache..."  
-sudo service apache2 restart  
-
-# Install website files
-curl -o /var/www/html/index.html https://raw.githubusercontent.com/LordYoni/WaterMonitor/refs/heads/main/Raspberry/Website/index.html  
-curl -o /var/www/html/script.js https://raw.githubusercontent.com/LordYoni/WaterMonitor/refs/heads/main/Raspberry/Website/script.js  
-curl -o /var/www/html/style.css https://raw.githubusercontent.com/LordYoni/WaterMonitor/refs/heads/main/Raspberry/Website/style.css  
-curl -o /var/www/html/value.php https://raw.githubusercontent.com/LordYoni/WaterMonitor/refs/heads/main/Raspberry/Website/value.php  
-curl -o /var/www/html/assets/logo_fav.png https://raw.githubusercontent.com/LordYoni/WaterMonitor/refs/heads/main/Raspberry/Website/assets/logo_fav.png  
-curl -o /var/www/html/assets/logo.jpg https://raw.githubusercontent.com/LordYoni/WaterMonitor/refs/heads/main/Raspberry/Website/assets/logo.jpg  
-curl -o /var/www/html/assets/Parc_isle_fond.webp https://raw.githubusercontent.com/LordYoni/WaterMonitor/refs/heads/main/Raspberry/Website/assets/Parc_isle_fond.webp
-
-# Change ownership and set permissions for website files
-sudo chown www-data:www-data /var/www/html/index.html /var/www/html/script.js /var/www/html/style.css /var/www/html/value.php  /var/www/html/assets/logo_fav.png /var/www/html/assets/logo.jpg /var/www/html/assets/Parc_isle_fond.webp 
-sudo chmod 644 /var/www/html/index.html /var/www/html/script.js /var/www/html/style.css /var/www/html/value.php  /var/www/html/assets/logo_fav.png /var/www/html/assets/logo.jpg /var/www/html/assets/Parc_isle_fond.webp 
-
-# Install pip for Python 3
-install_if_not_exists python3-pip  
-
-# Create a Python virtual environment and install dependencies
-echo "Creating Python virtual environment and installing dependencies..."  
-python3 -m venv $HOME/venv  # Create virtual environment
-source $HOME/venv/bin/activate  # Activate virtual environment
-pip install pyserial mysql-connector-python python-dotenv  # Install dependencies
-
-# Download run.py to ~/Scripts
-echo "Downloading run.py..."  
-
-if [ ! -d "$HOME/Scripts" ]; then  
-    mkdir -p "$HOME/Scripts"  # Create Scripts directory if it doesn't exist
-fi
-
-# Download the run.py script
-curl -o $HOME/Scripts/run.py https://raw.githubusercontent.com/LordYoni/WaterMonitor/refs/heads/main/Raspberry/run.py  
-
-# Create .env file for database credentials
-ENV_FILE="$HOME/Scripts/.env"  
-echo "DB_USER=dbaccess" > "$ENV_FILE"  
-echo "DB_PASSWORD=accessPASS" >> "$ENV_FILE"  
-echo "DB_NAME=$DB_NAME" >> "$ENV_FILE"  
-echo "DB_HOST=localhost" >> "$ENV_FILE"  
-echo "DB_PORT=3306" >> "$ENV_FILE"  
-
-# Change ownership and set permissions for the .env file
-sudo chown "$WEB_USER":"$WEB_USER" "$HOME/Scripts/.env"  
-sudo chmod 600 "$HOME/Scripts/.env"  
-
-# Download Fastfetch
-echo "Downloading Fastfetch..."  
-wget https://github.com/fastfetch-cli/fastfetch/releases/download/2.27.1/fastfetch-linux-aarch64.deb  
-sudo dpkg -i fastfetch-linux-aarch64.deb  # Install Fastfetch
-rm fastfetch-linux-aarch64.deb  # Remove downloaded package
-
-# Add custom aliases to .bashrc
-echo "alias venvlaunch='source venv/bin/activate'" >> $HOME/.bashrc  
-echo "alias c='clear && fastfetch'" >> $HOME/.bashrc  
-echo "alias shutdown='sudo shutdown now'" >> $HOME/.bashrc  
-echo "alias reboot='sudo reboot'" >> $HOME/.bashrc  
-echo "alias DBtest='mysql -u $DB_USER -p$DB_PASSWORD $DB_NAME < test_values.sql'" >> $HOME/.bashrc  
-echo "alias pystart='python3 ~/Scripts/run.py'" >> $HOME/.bashrc  
-
-# Completion message
-echo "
-All done!
-Just use source .bashrc to apply the changes to the current terminal session.
+write_env() {  # file user password [extra lines]
+    install -m 600 /dev/null "$1"
+    printf 'DB_SOCKET=/run/mysqld/mysqld.sock\nDB_NAME=%s\nDB_USER=%s\nDB_PASS=%s\n%s' "$DB_NAME" "$2" "$3" "${4:-}" > "$1"
+}
+write_env "$CONF_DIR/web.env" wm_web "$WEB_PASS" "PORT=80
 "
+write_env "$CONF_DIR/reader.env" wm_reader "$READER_PASS" "SERIAL_PORT=/dev/ttyUSB0
+"
+
+echo "==> Installing the web server (Node.js)"
+(cd "$APP_DIR" && npm ci --omit=dev)
+
+echo "==> Installing the XBee reader (Python)"
+python3 -m venv "$INSTALL_DIR/venv"
+"$INSTALL_DIR/venv/bin/pip" install --quiet -r "$APP_DIR/requirements.txt"
+
+echo "==> Starting the services"
+install -m 644 "$APP_DIR"/systemd/*.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable watermonitor-web watermonitor-reader
+systemctl restart watermonitor-web watermonitor-reader
+
+# Full-screen dashboard on the Pi's own display (Raspberry Pi OS with desktop only)
+if [ "$KIOSK" = 1 ] && [ -d /etc/xdg/autostart ] && { command -v chromium-browser || command -v chromium; } >/dev/null; then
+    echo "==> Setting up the full-screen dashboard (kiosk)"
+    install -m 755 "$APP_DIR/kiosk.sh" /usr/local/bin/watermonitor-kiosk
+    cat > /etc/xdg/autostart/watermonitor-kiosk.desktop <<'DESKTOP'
+[Desktop Entry]
+Type=Application
+Name=WaterMonitor
+Exec=/usr/local/bin/watermonitor-kiosk
+DESKTOP
+    if command -v raspi-config >/dev/null; then
+        raspi-config nonint do_boot_behaviour B4  # boot to the desktop, logged in
+        raspi-config nonint do_blanking 1         # keep the screen on
+    fi
+    KIOSK_MSG="  Kiosk:       opens at boot; remove /etc/xdg/autostart/watermonitor-kiosk.desktop to disable"
+else
+    KIOSK_MSG="  Kiosk:       not set up (needs Raspberry Pi OS with desktop and Chromium)"
+fi
+
+IP=$(hostname -I | awk '{print $1}')
+cat <<EOF
+
+All done!
+  Dashboard:   http://$IP/
+  Logs:        journalctl -u watermonitor-web -u watermonitor-reader -f
+  Demo data:   sudo mysql $DB_NAME < $APP_DIR/test_values.sql
+  Serial port: edit $CONF_DIR/reader.env, then sudo systemctl restart watermonitor-reader
+$KIOSK_MSG
+EOF

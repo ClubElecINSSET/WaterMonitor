@@ -1,0 +1,15 @@
+[Unit]
+Description=WaterMonitor XBee reader
+After=mariadb.service
+
+[Service]
+User=watermonitor
+SupplementaryGroups=dialout
+WorkingDirectory=/opt/watermonitor/Raspberry
+EnvironmentFile=/etc/watermonitor/reader.env
+ExecStart=/opt/watermonitor/venv/bin/python reader.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

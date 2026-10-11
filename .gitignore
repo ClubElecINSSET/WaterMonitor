@@ -1,4 +1,26 @@
-.vscode
-build
+# Claude / IA
+CLAUDE.md
+CLAUDE.local.md
+.claude/
+graphify-out/
+
+# Dépendances et caches
+node_modules/
+__pycache__/
+*.pyc
+venv/
+.venv/
+build/
+
+# Éditeurs et système
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+Thumbs.db
+
+# Divers
+*.log
 Doc.txt
 config.php

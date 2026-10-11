@@ -17,7 +17,8 @@ float abs_float(const float &number)
 
 uint8_t getMSB(const float &number) { return (uint8_t)( abs_float(number) / 256 ); }
 
-uint8_t getLSB(const float &number) { return (uint8_t)abs_float(number); }
+//Through uint16_t: casting a float >= 256 straight to uint8_t is undefined behaviour
+uint8_t getLSB(const float &number) { return (uint8_t)(uint16_t)abs_float(number); }
 
 uint8_t getDecimal(float number)
 {

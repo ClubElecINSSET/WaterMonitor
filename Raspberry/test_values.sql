@@ -1,12 +1,9 @@
+-- Demo data over the last 24 hours, one measure per minute: sudo mysql watermonitor < test_values.sql
 INSERT INTO Data (Time, TDS, pH, Oxygen, Conductivity, Temperature)
-VALUES
-(NOW(), 120.50, 7.20, 8.50, 320.75, 20.00),
-(NOW(), 180.00, 7.50, 9.20, 410.10, 18.75),
-(NOW(), 250.75, 6.80, 7.00, 350.00, 22.50),
-(NOW(), 300.20, 7.10, 6.50, 290.30, 19.85),
-(NOW(), 400.40, 7.80, 8.00, 460.90, 17.10),
-(NOW(), 320.50, 7.25, 7.80, 380.55, 21.00),
-(NOW(), 275.90, 7.60, 9.00, 425.10, 16.50),
-(NOW(), 500.00, 6.90, 6.80, 300.00, 23.30),
-(NOW(), 150.20, 7.15, 7.50, 315.75, 20.75),
-(NOW(), 230.30, 7.40, 8.10, 340.40, 19.60);
+SELECT NOW() - INTERVAL seq MINUTE,
+       ROUND(80 + 40 * SIN(seq / 120) + RAND() * 10, 2),
+       ROUND(6.6 + 0.3 * SIN(seq / 180) + RAND() * 0.1, 2),
+       ROUND(6.0 + 1.5 * SIN(seq / 150) + RAND() * 0.3, 2),
+       ROUND(140 + 30 * SIN(seq / 135) + RAND() * 10, 2),
+       ROUND(14 + 3 * SIN(seq / 225) + RAND() * 0.5, 2)
+FROM seq_0_to_1439;
