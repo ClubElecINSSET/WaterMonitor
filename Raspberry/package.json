@@ -1,0 +1,37 @@
+{
+  "name": "watermonitor",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --env-file=dev.env --watch-path=server.js server.js",
+    "build": "vite build",
+    "test": "node --test Website/src/*.test.js && python3 -m unittest test_reader",
+    "db": "docker start wm-db 2>/dev/null || docker run -d --name wm-db -e MARIADB_ROOT_PASSWORD=root -e MARIADB_DATABASE=watermonitor -p 3306:3306 mariadb:11",
+    "seed": "until docker exec wm-db mariadb-admin ping -uroot -proot --silent; do sleep 1; done && docker exec -i wm-db mariadb -uroot -proot watermonitor < schema.sql && docker exec wm-db mariadb -uroot -proot watermonitor -e 'TRUNCATE Data' && docker exec -i wm-db mariadb -uroot -proot watermonitor < test_values.sql",
+    "test:api": "node --test server.test.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0",
+    "mysql2": "^3.11.0"
+  },
+  "type": "module",
+  "devDependencies": {
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/kaushan-script": "^5.3.0",
+    "@fontsource/montserrat": "^5.3.0",
+    "@tailwindcss/vite": "^4.3.3",
+    "@vitejs/plugin-react": "^6.1.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^1.55.0",
+    "radix-ui": "^1.7.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "recharts": "^3.8.0",
+    "tailwind-merge": "^3.7.0",
+    "tailwindcss": "^4.3.3",
+    "tw-animate-css": "^1.4.0",
+    "vite": "^8.3.4"
+  }
+}

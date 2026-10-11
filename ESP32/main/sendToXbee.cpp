@@ -6,62 +6,38 @@
 #include "ConductivitySensor.h"
 #include "Oxygen.h"
 
-
 float abs_float(const float &number)
 {
-    if(number < 0.0f)
+    if (number < 0.0f)
         return -number;
 
     return number;
 }
 
-uint8_t getMSB(const float &number) { return (uint8_t)( abs_float(number) / 256 ); }
-
-uint8_t getLSB(const float &number) { return (uint8_t)abs_float(number); }
-
-uint8_t getDecimal(float number)
+void writeToArray(uint8_t *array, uint8_t &index, const Sensor &sensor, const uint8_t &size)
 {
-    number = abs_float(number) + 0.005f;    //Absolute value + rounding
-    number -= (float)(uint16_t)number;      //Discard integer part
-    number *= 100.0f;                       //Move the first two decimal digits
-
-    return (uint8_t)number;                 //Cast to a byte
-}
-
-void writeToArray
-(
-            uint8_t     *array,
-            uint8_t     &index,
-    const   Sensor      &sensor,
-    const   uint8_t     &size
-)
-{
-    if(sensor.isValueWrong())
+    if (sensor.isValueWrong())
     {
         array[index] = 0xff;
         index += size;
         return;
     }
 
-    if(size == 3)
-        array[index++] = getMSB (sensor.getValue());
+    // Round once, so that 6.996 is sent as 7.00 and not as 6 + .00
+    const float    rounded = abs_float(sensor.getValue()) + 0.005f;
+    const uint16_t integer = (uint16_t)rounded;
 
-    array[index++] = getLSB     (sensor.getValue());
-    array[index++] = getDecimal (sensor.getValue());
+    if (size == 3)
+        array[index++] = integer / 256;
+
+    array[index++] = integer % 256;
+    array[index++] = (uint8_t)((rounded - integer) * 100.0f);
 }
 
-
-
-void sendToXbee
-(
-    const PhSensor              &ph,
-    const TemperatureSensor     &temperature,
-    const tdsSensor             &tds,
-    const ConductivitySensor    &conductivity,
-    const OxygenSensor          &oxygen
-)
+void sendToXbee(const PhSensor &ph, const TemperatureSensor &temperature, const tdsSensor &tds,
+                const ConductivitySensor &conductivity, const OxygenSensor &oxygen)
 {
-    //All numbers are unsigned, except temperature_LSB
+    // All numbers are unsigned, except temperature_LSB
     enum arrayIndex : uint8_t
     {
         start,
@@ -88,9 +64,9 @@ void sendToXbee
         end
     };
 
-    const uint8_t ARRAY_SIZE    = arrayIndex::end + 1;
-    const uint8_t START_BYTE    = 0xa0;
-    const uint8_t STOP_BYTE     = 0x0a;
+    const uint8_t ARRAY_SIZE = arrayIndex::end + 1;
+    const uint8_t START_BYTE = 0xa0;
+    const uint8_t STOP_BYTE  = 0x0a;
 
     uint8_t checksum_var = 0;
     uint8_t array_index;
@@ -101,20 +77,20 @@ void sendToXbee
 
     array_index = arrayIndex::start + 1;
 
-    writeToArray(array, array_index, temperature,   2);
-    writeToArray(array, array_index, ph,            2);
-    writeToArray(array, array_index, tds,           3);
-    writeToArray(array, array_index, conductivity,  3);
-    writeToArray(array, array_index, oxygen,        3);
+    writeToArray(array, array_index, temperature, 2);
+    writeToArray(array, array_index, ph, 2);
+    writeToArray(array, array_index, tds, 3);
+    writeToArray(array, array_index, conductivity, 3);
+    writeToArray(array, array_index, oxygen, 3);
 
-    //calculate checksum
-    for(uint8_t i = arrayIndex::start + 1; i != arrayIndex::checksum; i++)
+    // calculate checksum
+    for (uint8_t i = arrayIndex::start + 1; i != arrayIndex::checksum; i++)
         checksum_var += array[i];
 
     array[arrayIndex::checksum] = checksum_var;
     array[arrayIndex::end]      = STOP_BYTE;
 
-    //send to Xbee
+    // send to Xbee
     for (uint8_t i = 0; i < ARRAY_SIZE; i++)
         Serial.write(array[i]);
 }

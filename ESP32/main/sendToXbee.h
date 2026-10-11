@@ -7,13 +7,7 @@
 #include "ConductivitySensor.h"
 #include "Oxygen.h"
 
-void sendToXbee
-(
-    const PhSensor              &ph,
-    const TemperatureSensor     &temperature,
-    const tdsSensor             &tds,
-    const ConductivitySensor    &conductivity,
-    const OxygenSensor          &oxygen
-);
+void sendToXbee(const PhSensor &ph, const TemperatureSensor &temperature, const tdsSensor &tds,
+                const ConductivitySensor &conductivity, const OxygenSensor &oxygen);
 
 #endif

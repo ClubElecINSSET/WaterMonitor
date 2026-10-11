@@ -1,0 +1,3 @@
+# Generated files (.gitignore is also honoured)
+Raspberry/Website/dist
+package-lock.json

@@ -1,0 +1,15 @@
+# ESP32 firmware style: braces on their own line, 4 spaces, aligned declarations
+BasedOnStyle: LLVM
+Language: Cpp
+IndentWidth: 4
+AccessModifierOffset: -4
+ColumnLimit: 120
+BreakBeforeBraces: Allman
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Never
+AlignConsecutiveAssignments: Consecutive
+AlignConsecutiveDeclarations: Consecutive
+AlignConsecutiveMacros: Consecutive
+PointerAlignment: Right
+IndentPPDirectives: BeforeHash
+SortIncludes: Never # main.ino relies on the include order

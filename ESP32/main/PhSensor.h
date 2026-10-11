@@ -3,7 +3,6 @@
 
 #include "baseSensorClass.h"
 
-
 class PhSensor : public Sensor
 {
 public:
@@ -14,7 +13,7 @@ public:
     void printState() const override;
 
 private:
-    //Constant for pH calculation
+    // Constant for pH calculation
     static constexpr inline float OFFSET = -5.0f;
 };
 

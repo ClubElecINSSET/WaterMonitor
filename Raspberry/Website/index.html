@@ -1,41 +1,15 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, shrink-to-fit=no"
-    />
-    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="author" content="Taine Yoni" />
-    <title>Dashboard</title>
-    <link rel="stylesheet" href="style.css" />
-    <link rel="shortcut icon" href="assets/logo_fav.png" type="icon" />
+    <meta name="color-scheme" content="light" />
+    <title>WaterMonitor · Parc d'Isle</title>
+    <link rel="icon" href="/assets/logo_fav.png" type="image/png" />
   </head>
   <body>
-    <!-- Barre de navigation -->
-    <nav class="navbar">
-      <div class="logo">
-        <a href="index.html"><img src="assets/logo.jpg" alt="Logo" /></a>
-      </div>
-      <ul class="nav-links">
-        <li><a href="#">À propos</a></li>
-        <li><a href="#">Contact</a></li>
-      </ul>
-    </nav>
-
-    <!-- Fond avec informations et indicateur de qualité -->
-    <div class="background">
-      <div class="info-container" id="info-container"></div>
-
-      <div id="quality" class="quality-container">
-        <div>
-          Qualité<br />Générale
-          <span id="quality-span" class="">MOYEN</span>
-        </div>
-      </div>
-    </div>
-
-    <script src="script.js"></script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>
